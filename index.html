@@ -1,0 +1,344 @@
+<title>長庚學分計算</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Space+Grotesk:wght@500;700&display=swap">
+<style>
+/* Layout: one narrow column like a phone app; summary ring first, category cards, then the editable course list. */
+:root{
+  --bg:#f3f5f4; --surface:#ffffff; --line:#dfe5e2; --fg:#1c2421; --muted:#61706a;
+  --accent:#0f8f86; --accent-soft:#d6efec;
+  --c1:#2f6fd6; --c2:#7a52cc; --c3:#d0567a; --c4:#d9932b; --c5:#4c9a5a;
+  --warn:#b7791f; --ok:#2e8a4e;
+  --f-body:"Noto Sans TC",system-ui,-apple-system,"PingFang TC","Microsoft JhengHei",sans-serif;
+  --f-num:"Space Grotesk","Noto Sans TC",system-ui,sans-serif;
+  --r:14px;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#111715; --surface:#1a2220; --line:#2b3633; --fg:#e7eeeb; --muted:#93a39d;
+  --accent:#3cc0b4; --accent-soft:#183a37;
+  --c1:#6c9cf0; --c2:#a688e6; --c3:#ea7d9e; --c4:#ebb057; --c5:#78c286;
+  --warn:#e0a84a; --ok:#5cc282; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111715; --surface:#1a2220; --line:#2b3633; --fg:#e7eeeb; --muted:#93a39d;
+  --accent:#3cc0b4; --accent-soft:#183a37;
+  --c1:#6c9cf0; --c2:#a688e6; --c3:#ea7d9e; --c4:#ebb057; --c5:#78c286;
+  --warn:#e0a84a; --ok:#5cc282; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.6}
+.wrap{max-width:760px;margin:0 auto;padding-block:20px 60px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:18px}
+h1{font-size:1.5rem;font-weight:900;margin:0;text-wrap:balance}
+h2{font-size:1.1rem;font-weight:700;margin:0;text-wrap:balance}
+.sub{color:var(--muted);margin:2px 0 0;font-size:.9rem}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.num{font-family:var(--f-num);font-variant-numeric:tabular-nums}
+.hero{display:grid;grid-template-columns:200px 1fr;gap:18px;align-items:center}
+@media (max-width:520px){.hero{grid-template-columns:1fr;justify-items:center;text-align:center}}
+.ring{position:relative;width:200px;height:200px}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring .mid{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.ring .big{font-size:3.2rem;font-weight:700;line-height:1}
+.legend{display:flex;flex-direction:column;gap:6px}
+.legend .row{display:flex;align-items:center;gap:8px}
+.dot{width:10px;height:10px;border-radius:50%;flex:none}
+.tag{display:inline-block;font-size:.75rem;padding:1px 8px;border-radius:99px;background:var(--accent-soft);color:var(--accent);font-weight:500}
+.tag.warn{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:6px}
+.card .need{font-size:.9rem;color:var(--muted)}
+.card .need b{font-size:1.9rem;color:var(--fg);margin:0 4px}
+.bar{height:8px;border-radius:99px;background:var(--line);overflow:hidden;display:flex}
+.bar i{display:block;height:100%}
+.small{font-size:.82rem;color:var(--muted)}
+textarea,input,select{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+textarea{width:100%;min-height:130px;resize:vertical}
+input[type=number]{width:72px}
+button{font:inherit;font-weight:500;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:10px;padding:8px 14px;cursor:pointer}
+button.pri{background:var(--accent);border-color:var(--accent);color:#fff}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btns{display:flex;flex-wrap:wrap;gap:8px}
+ol.steps{margin:0;padding-left:1.3em;color:var(--muted);font-size:.9rem}
+.tablebox{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-size:.88rem}
+th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+th{color:var(--muted);font-weight:500;background:var(--bg)}
+td.name{white-space:normal;min-width:150px}
+td input,td select{padding:4px 6px;border-radius:8px}
+td input.n{width:56px}
+.reqgrid{display:grid;grid-template-columns:1fr auto auto;gap:8px 10px;align-items:center}
+.notice{font-size:.85rem;color:var(--muted);border-left:3px solid var(--warn);padding:4px 10px}
+.msg{font-size:.9rem;color:var(--accent);min-height:1.4em}
+details summary{cursor:pointer;font-weight:700}
+@media (prefers-reduced-motion:no-preference){.bar i{transition:width .4s}}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>長庚學分計算</h1>
+    <p class="sub">貼上 iCGU 歷年成績，算出離畢業還差幾學分。資料只存在你自己的瀏覽器。</p>
+  </header>
+
+  <section class="panel" aria-labelledby="sumTitle">
+    <div class="hero">
+      <div class="ring">
+        <svg viewBox="0 0 120 120" id="ringSvg" aria-hidden="true"></svg>
+        <div class="mid"><span class="small">還差</span><span class="big num" id="remain">0</span><span class="small">學分</span></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;min-width:0">
+        <h2 id="sumTitle">畢業進度 <span class="tag" id="sampleTag">範例資料</span></h2>
+        <div class="num" style="font-size:1.4rem;font-weight:700"><span id="earned">0</span> / <span id="total">0</span> 學分</div>
+        <div class="legend" id="legend"></div>
+        <div class="small" id="ringNote"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="cards" id="cards" aria-label="各類別學分"></section>
+
+  <section class="panel" aria-labelledby="pasteTitle">
+    <h2 id="pasteTitle">匯入我的成績</h2>
+    <ol class="steps">
+      <li>登入 iCGU，打開「成績查詢」的歷年成績。</li>
+      <li>在表格上全選（Ctrl+A 或長按全選）並複製。</li>
+      <li>貼到下面，按「匯入」。下方表格可以逐筆修改類別。</li>
+    </ol>
+    <textarea id="paste" placeholder="把成績表格貼在這裡"></textarea>
+    <div class="btns">
+      <button class="pri" id="btnImport">匯入</button>
+      <button id="btnAdd">手動新增一門課</button>
+      <button id="btnClear">清空全部課程</button>
+    </div>
+    <div class="msg" id="msg" role="status"></div>
+  </section>
+
+  <section class="panel" aria-labelledby="listTitle">
+    <h2 id="listTitle">課程清單 <span class="small num" id="count"></span></h2>
+    <div class="tablebox">
+      <table>
+        <thead><tr><th>學期</th><th>科目</th><th>學分</th><th>成績</th><th>類別</th><th>狀態</th><th></th></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <p class="small">成績留空代表修習中；C- 以上、60 分以上、通過、合格、抵免算已取得。判斷錯了可以在「狀態」直接改。</p>
+  </section>
+
+  <section class="panel" aria-labelledby="reqTitle">
+    <details id="reqDetails">
+      <summary id="reqTitle">畢業學分規定（人工智慧學系）</summary>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-top:12px">
+        <p class="notice">預設值還沒跟學校核對過：總學分 128、系訂必修 60 取自系網公開資料，其他類別請依 iCGU「系所必選修科目」中你入學年度的表填上。</p>
+        <div class="reqgrid" id="reqGrid"></div>
+        <label class="small">畢業總學分 <input type="number" id="reqTotal" min="0" class="num"></label>
+        <label class="small">系訂必修科目清單（一行一科，用來找出還沒修的必修）<textarea id="reqCourses" style="min-height:90px" placeholder="例：機器學習"></textarea></label>
+      </div>
+    </details>
+    <div id="missingBox" class="small"></div>
+  </section>
+</div>
+
+<script>
+const CATS=[
+  {id:'common',name:'校訂共同必修',color:'--c1'},
+  {id:'gen',name:'通識',color:'--c4'},
+  {id:'dept',name:'系訂必修',color:'--c2'},
+  {id:'elective',name:'選修',color:'--c3'},
+  {id:'none',name:'不計入',color:'--muted'}
+];
+const COMMON_KW=['國文','英文','英語','體育','服務學習','軍訓','全人','大學入門','中文'];
+const GEN_KW=['通識','博雅','核心'];
+const DEFAULT_REQ={total:128,cats:{common:0,gen:0,dept:60,elective:0},courses:''};
+const SAMPLE=[
+  ['112-1','計算機概論(1)',3,'92','dept'],['112-1','微積分(1)',3,'78','dept'],['112-1','大一英文',2,'85','common'],
+  ['112-2','程式設計',3,'88','dept'],['113-1','資料結構',3,'81','dept'],['113-1','通識：科技與社會',2,'90','gen'],
+  ['113-2','機器學習',3,'86','dept'],['114-2','自然語言處理與應用',3,'','elective'],['115-1','專題研究(3)',1,'','dept']
+].map(r=>({term:r[0],name:r[1],cr:r[2],score:r[3],cat:r[4]}));
+
+let state={courses:SAMPLE,req:structuredClone(DEFAULT_REQ),sample:true};
+try{const s=JSON.parse(localStorage.getItem('cguCredit')||'null');if(s&&s.courses){state=s}}catch(e){}
+function save(){try{localStorage.setItem('cguCredit',JSON.stringify(state))}catch(e){}}
+
+const $=id=>document.getElementById(id);
+const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* 等第制：大學部 C- 以上及格（教育部等第對照） */
+const LETTER_PASS=/^(A\+|A|A-|B\+|B|B-|C\+|C|C-)$/i, LETTER_FAIL=/^(D[+-]?|E|F|X)$/i;
+function autoStatus(c){
+  const s=String(c.score??'').trim().replace(/\s/g,'');
+  if(s==='')return 'doing';
+  if(LETTER_PASS.test(s))return 'pass';
+  if(LETTER_FAIL.test(s))return 'fail';
+  if(/不及格|不合格|不通過|停修|退選|^W$|^fail$/i.test(s))return 'fail';
+  if(/通過|抵免|免修|及格|合格|^P$|^pass$/i.test(s))return 'pass';
+  const n=parseFloat(s);
+  if(!isNaN(n)){if(n<=4.3&&s.includes(".")) return n>=1.7?'pass':'fail';return n>=60?'pass':'fail'}
+  return 'pass';
+}
+function status(c){return c.st&&c.st!=='auto'?c.st:autoStatus(c)}
+
+/* ---------- parsing pasted text ---------- */
+const TYPE_RE=/^(必修?|選修?|通識|共同必修|校必修|系必修|核心)$/;
+const TERM_RE=/^(\d{2,3})\s*[-\/]?\s*([12]|暑)$/;
+const SCORE_TXT=/^(通過|不通過|抵免|免修|及格|不及格|合格|不合格|停修|退選|P|Pass|Fail|F|W|X|E|[A-D][+-]?)$/i;
+function guessCat(name,type){
+  if(GEN_KW.some(k=>name.includes(k))||/通識/.test(type))return 'gen';
+  if(COMMON_KW.some(k=>name.includes(k)))return 'common';
+  if(/必/.test(type))return 'dept';
+  return 'elective';
+}
+function parseRow(cells,curTerm){
+  cells=cells.map(c=>c.trim()).filter(Boolean);
+  if(cells.length<2)return null;
+  let term=curTerm,type='',name='',nums=[],scoreTxt='';
+  for(const c of cells){
+    const t=c.replace(/\s/g,'');
+    let m;
+    if((m=t.match(TERM_RE))){term=m[1]+'-'+m[2];continue}
+    if((m=t.match(/^(\d{3})學年度?第?([一二12])學期/))){term=m[1]+'-'+(m[2]==='一'||m[2]==='1'?1:2);continue}
+    if(TYPE_RE.test(t)){type=t;continue}
+    if(SCORE_TXT.test(t)){scoreTxt=t;continue}
+    if(/^\d+(\.\d+)?$/.test(t)){nums.push(parseFloat(t));continue}
+    if(/[一-鿿A-Za-z]/.test(t)&&t.length>name.length&&!/^[A-Z]{0,3}\d{3,}[A-Z]?$/.test(t))name=c;
+  }
+  if(!name)return null;
+  const ci=nums.findIndex(n=>n>0&&n<=9&&Number.isInteger(n*2));
+  if(ci<0)return null;
+  const cr=nums[ci];
+  const rest=nums.filter((_,i)=>i!==ci&&_<=100);
+  const big=rest.filter(n=>n>4.3);
+  const score=scoreTxt||(big.length?String(big[big.length-1]):rest.length?String(rest[rest.length-1]):'');
+  return {term:term||'',name,cr,score,cat:guessCat(name,type)};
+}
+function parseText(txt){
+  const lines=txt.split(/\r?\n/).map(l=>l.trimEnd()).filter(l=>l.trim());
+  const out=[];let curTerm='';
+  const tabbed=lines.filter(l=>l.includes('\t')).length>=lines.length*0.3;
+  if(tabbed||lines.some(l=>/\S\s{2,}\S/.test(l))){
+    for(const l of lines){
+      const hm=l.match(/(\d{3})\s*學年度?.*?第?\s*([一二12])\s*學期/);
+      if(hm&&!l.includes('\t'))curTerm=hm[1]+'-'+(/[一1]/.test(hm[2])?1:2);
+      const r=parseRow(tabbed?l.split('\t'):l.split(/\s{2,}/),curTerm);
+      if(r){out.push(r);curTerm=r.term||curTerm}
+    }
+    if(out.length)return out;
+  }
+  /* one cell per line: find header row, then chunk */
+  const HEAD=/^(學期|學年期|科目名稱|課程名稱|科目|學分數?|成績|必選修|選別|修別|課號|課程代碼|備註|學年|開課系所)$/;
+  let hs=lines.findIndex(l=>HEAD.test(l.trim()));
+  if(hs>=0){
+    let he=hs;while(he+1<lines.length&&HEAD.test(lines[he+1].trim()))he++;
+    const n=he-hs+1;
+    for(let i=he+1;i+n<=lines.length;i+=n){
+      const r=parseRow(lines.slice(i,i+n),curTerm);
+      if(r){out.push(r);curTerm=r.term||curTerm}
+    }
+    if(out.length)return out;
+  }
+  for(const l of lines){const r=parseRow(l.split(/\s+/),curTerm);if(r){out.push(r);curTerm=r.term||curTerm}}
+  return out;
+}
+
+/* ---------- compute + render ---------- */
+function compute(){
+  const by={};CATS.forEach(c=>by[c.id]={done:0,doing:0});
+  for(const c of state.courses){
+    const st=status(c);const cr=+c.cr||0;
+    if(st==='pass')by[c.cat].done+=cr;else if(st==='doing')by[c.cat].doing+=cr;
+  }
+  return by;
+}
+function render(){
+  const by=compute(),req=state.req;
+  const counted=CATS.filter(c=>c.id!=='none');
+  const done=counted.reduce((s,c)=>s+by[c.id].done,0);
+  const doing=counted.reduce((s,c)=>s+by[c.id].doing,0);
+  const total=+req.total||0;
+  $('earned').textContent=fmt(done);$('total').textContent=fmt(total);
+  $('remain').textContent=fmt(Math.max(0,total-done));
+  $('sampleTag').hidden=!state.sample;
+  $('ringNote').textContent=doing?`淡色是修習中的 ${fmt(doing)} 學分；本學期修完後為 ${fmt(done+doing)} / ${fmt(total)}`:'';
+  // ring
+  const R=50,C=2*Math.PI*R;let off=0;let svg=`<circle cx="60" cy="60" r="${R}" fill="none" stroke="${css('--line')}" stroke-width="14"/>`;
+  const denom=Math.max(total,done+doing,1);
+  for(const c of counted){
+    for(const [v,op] of [[by[c.id].done,1],[by[c.id].doing,.38]]){
+      if(!v)continue;const len=v/denom*C;
+      svg+=`<circle cx="60" cy="60" r="${R}" fill="none" stroke="${css(c.color)}" stroke-opacity="${op}" stroke-width="14" stroke-dasharray="${len} ${C-len}" stroke-dashoffset="${-off}"/>`;
+      off+=len;
+    }
+  }
+  $('ringSvg').innerHTML=svg;
+  $('legend').innerHTML=counted.map(c=>`<div class="row"><span class="dot" style="background:var(${c.color})"></span>${c.name}<span class="small num">已取得 ${fmt(by[c.id].done)}</span></div>`).join('');
+  // cards
+  $('cards').innerHTML=counted.map(c=>{
+    const need=+req.cats[c.id]||0,d=by[c.id].done,g=by[c.id].doing;
+    const max=Math.max(need,d+g,1);
+    const head=need?`還差<b class="num">${fmt(Math.max(0,need-d))}</b>學分`:`<span class="tag warn">未設定門檻</span>`;
+    return `<div class="card"><strong>${c.name}</strong><div class="need">${head}</div>
+      <div class="bar"><i style="width:${d/max*100}%;background:var(${c.color})"></i><i style="width:${g/max*100}%;background:var(${c.color});opacity:.38"></i></div>
+      <div class="small num">${fmt(d)}${need?' / '+fmt(need):''} 學分${g?' · 修習中 '+fmt(g):''}</div></div>`}).join('');
+  // table
+  $('count').textContent=`共 ${state.courses.length} 門`;
+  $('tbody').innerHTML=state.courses.map((c,i)=>{
+    const st=status(c);
+    const auto={pass:'已取得',doing:'修習中',fail:'未通過'}[autoStatus(c)];
+    const cur=c.st||'auto';
+    const stTxt=`<select data-k="st" aria-label="狀態">${[['auto','自動（'+auto+'）'],['pass','已取得'],['doing','修習中'],['fail','未通過']].map(([v,t])=>`<option value="${v}"${v===cur?' selected':''}>${t}</option>`).join('')}</select>`;
+    return `<tr data-i="${i}">
+      <td><input data-k="term" value="${esc(c.term)}" style="width:66px" aria-label="學期"></td>
+      <td class="name"><input data-k="name" value="${esc(c.name)}" style="width:100%" aria-label="科目"></td>
+      <td><input class="n num" type="number" step="0.5" min="0" data-k="cr" value="${esc(c.cr)}" aria-label="學分"></td>
+      <td><input class="n num" data-k="score" value="${esc(c.score)}" aria-label="成績"></td>
+      <td><select data-k="cat" aria-label="類別">${CATS.map(x=>`<option value="${x.id}"${x.id===c.cat?' selected':''}>${x.name}</option>`).join('')}</select></td>
+      <td>${stTxt}</td>
+      <td><button data-del aria-label="刪除">刪除</button></td></tr>`}).join('');
+  // missing required courses
+  const reqList=(req.courses||'').split(/\n/).map(s=>s.trim()).filter(Boolean);
+  if(reqList.length){
+    const norm=s=>s.replace(/[\s()（）]/g,'');
+    const passed=state.courses.filter(c=>status(c)!=='fail').map(c=>norm(c.name));
+    const miss=reqList.filter(r=>!passed.some(p=>p.includes(norm(r))));
+    $('missingBox').innerHTML=miss.length?`<strong>還沒修的系訂必修：</strong>${miss.map(esc).join('、')}`:'<strong>系訂必修清單都修過或修習中了。</strong>';
+  }else $('missingBox').textContent='';
+}
+const fmt=n=>Number.isInteger(n)?String(n):n.toFixed(1);
+
+function renderReq(){
+  $('reqGrid').innerHTML=CATS.filter(c=>c.id!=='none').map(c=>`<span>${c.name}</span><input type="number" min="0" class="num" id="req_${c.id}" data-cat="${c.id}" value="${state.req.cats[c.id]||''}" placeholder="0"><span class="small">學分</span>`).join('');
+  $('reqTotal').value=state.req.total;
+  $('reqCourses').value=state.req.courses||'';
+}
+
+/* ---------- events ---------- */
+$('btnImport').onclick=()=>{
+  const rows=parseText($('paste').value);
+  if(!rows.length){$('msg').textContent='沒有讀到課程。請確認貼上的內容包含科目名稱和學分數；如果還是不行，可以用「手動新增」。';return}
+  if(state.sample){state.courses=[];state.sample=false}
+  const key=c=>c.term+'|'+c.name;
+  const have=new Set(state.courses.map(key));
+  const fresh=rows.filter(r=>!have.has(key(r)));
+  state.courses.push(...fresh);
+  state.courses.sort((a,b)=>a.term.localeCompare(b.term));
+  $('msg').textContent=`匯入 ${fresh.length} 門課${rows.length-fresh.length?`（略過重複 ${rows.length-fresh.length} 門）`:''}。請檢查下方類別是否正確。`;
+  $('paste').value='';save();render();
+};
+$('btnAdd').onclick=()=>{if(state.sample){state.courses=[];state.sample=false}state.courses.push({term:'',name:'新課程',cr:3,score:'',cat:'elective'});save();render();};
+let clearArmed=false;
+$('btnClear').onclick=e=>{
+  if(!clearArmed){clearArmed=true;e.target.textContent='再按一次確認清空';setTimeout(()=>{clearArmed=false;e.target.textContent='清空全部課程'},3000);return}
+  state.courses=[];state.sample=false;clearArmed=false;e.target.textContent='清空全部課程';save();render();
+};
+$('tbody').addEventListener('change',e=>{
+  const tr=e.target.closest('tr');if(!tr)return;const c=state.courses[+tr.dataset.i];const k=e.target.dataset.k;
+  if(!k)return;c[k]=k==='cr'?parseFloat(e.target.value)||0:e.target.value;state.sample=false;save();render();
+});
+$('tbody').addEventListener('click',e=>{
+  if(!e.target.hasAttribute('data-del'))return;state.courses.splice(+e.target.closest('tr').dataset.i,1);save();render();
+});
+$('reqGrid').addEventListener('input',e=>{const k=e.target.dataset.cat;if(k){state.req.cats[k]=parseFloat(e.target.value)||0;save();render()}});
+$('reqTotal').addEventListener('input',e=>{state.req.total=parseFloat(e.target.value)||0;save();render()});
+$('reqCourses').addEventListener('input',e=>{state.req.courses=e.target.value;save();render()});
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',render);
+new MutationObserver(render).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+
+renderReq();render();
+</script>
