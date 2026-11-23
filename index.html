@@ -183,7 +183,15 @@ function status(c){return c.st&&c.st!=='auto'?c.st:autoStatus(c)}
 const TYPE_RE=/^(必修?|選修?|通識|共同必修|校必修|系必修|核心)$/;
 const TERM_RE=/^(\d{2,3})\s*[-\/]?\s*([12]|暑)$/;
 const SCORE_TXT=/^(通過|不通過|抵免|免修|及格|不及格|合格|不合格|停修|退選|P|Pass|Fail|F|W|X|E|[A-D][+-]?)$/i;
-function guessCat(name,type){
+function guessCat(name,type,code){
+  code=(code||'').toUpperCase();
+  if(code){
+    if(/^(GE|SP|MS|GL)/.test(code))return 'common';   /* 英文、體育等校訂共同 */
+    if(/^G/.test(code))return 'gen';                  /* GA/GD/GH/GS/GT… 通識 */
+    if(/^AIM/.test(code))return 'elective';           /* AI 系選修（含合開） */
+    if(/^AI/.test(code))return /選/.test(type)?'elective':'dept';
+    if(!type)return 'elective';                       /* 外系課 */
+  }
   if(GEN_KW.some(k=>name.includes(k))||/通識/.test(type))return 'gen';
   if(COMMON_KW.some(k=>name.includes(k)))return 'common';
   if(/必/.test(type))return 'dept';
@@ -212,8 +220,35 @@ function parseRow(cells,curTerm){
   const score=scoreTxt||(big.length?String(big[big.length-1]):rest.length?String(rest[rest.length-1]):'');
   return {term:term||'',name,cr,score,cat:guessCat(name,type)};
 }
+/* 有表頭（如 iCGU 成績查詢：學年 學期 科目代號 課程名稱 成績 實得學分 備註）時依欄位讀取 */
+function parseByHeader(lines){
+  const hi=lines.findIndex(l=>/(課程|科目)名稱/.test(l)&&/學分/.test(l));
+  if(hi<0)return null;
+  const sep=lines[hi].includes('\t')?'\t':/\s{2,}/;
+  const H=lines[hi].split(sep).map(h=>h.trim());
+  const col=re=>H.findIndex(h=>re.test(h));
+  const iY=col(/^學年$/),iS=col(/^學期$/),iT=col(/學年期/),iC=col(/代號|代碼|課號/),iN=col(/(課程|科目)名稱/),
+        iG=col(/^成績$|分數|等第/),iCr=col(/學分/),iTy=col(/必選修|選別|修別|類別/),iR=col(/備註/);
+  if(iN<0||iCr<0)return null;
+  const out=[];
+  for(const l of lines.slice(hi+1)){
+    const c=l.split(sep).map(x=>x.trim());
+    const name=c[iN];if(!name||/(課程|科目)名稱/.test(name))continue;
+    let term='';
+    if(iY>=0&&iS>=0&&c[iY])term=c[iY]+'-'+c[iS];
+    else if(iT>=0&&c[iT]){const t=c[iT].replace(/\D/g,'');term=t.slice(0,-1)+'-'+t.slice(-1)}
+    const crRaw=c[iCr]||'';const cr=parseFloat(crRaw);
+    let score=iG>=0?c[iG]||'':'';
+    const remark=iR>=0?c[iR]||'':'';
+    if(!score&&/通過|抵免|免修/.test(remark))score=remark.trim();
+    const code=iC>=0?c[iC]||'':'';
+    out.push({term,code,name,cr:isNaN(cr)?0:cr,score,cat:guessCat(name,iTy>=0?c[iTy]||'':'',code)});
+  }
+  return out.length?out:null;
+}
 function parseText(txt){
   const lines=txt.split(/\r?\n/).map(l=>l.trimEnd()).filter(l=>l.trim());
+  const byHead=parseByHeader(lines);if(byHead)return byHead;
   const out=[];let curTerm='';
   const tabbed=lines.filter(l=>l.includes('\t')).length>=lines.length*0.3;
   if(tabbed||lines.some(l=>/\S\s{2,}\S/.test(l))){
@@ -289,7 +324,7 @@ function render(){
     const stTxt=`<select data-k="st" aria-label="狀態">${[['auto','自動（'+auto+'）'],['pass','已取得'],['doing','修習中'],['fail','未通過']].map(([v,t])=>`<option value="${v}"${v===cur?' selected':''}>${t}</option>`).join('')}</select>`;
     return `<tr data-i="${i}">
       <td><input data-k="term" value="${esc(c.term)}" style="width:66px" aria-label="學期"></td>
-      <td class="name"><input data-k="name" value="${esc(c.name)}" style="width:100%" aria-label="科目"></td>
+      <td class="name"><input data-k="name" value="${esc(c.name)}" style="width:100%" aria-label="科目">${c.code?`<div class="small num">${esc(c.code)}</div>`:''}</td>
       <td><input class="n num" type="number" step="0.5" min="0" data-k="cr" value="${esc(c.cr)}" aria-label="學分"></td>
       <td><input class="n num" data-k="score" value="${esc(c.score)}" aria-label="成績"></td>
       <td><select data-k="cat" aria-label="類別">${CATS.map(x=>`<option value="${x.id}"${x.id===c.cat?' selected':''}>${x.name}</option>`).join('')}</select></td>
@@ -317,7 +352,7 @@ $('btnImport').onclick=()=>{
   const rows=parseText($('paste').value);
   if(!rows.length){$('msg').textContent='沒有讀到課程。請確認貼上的內容包含科目名稱和學分數；如果還是不行，可以用「手動新增」。';return}
   if(state.sample){state.courses=[];state.sample=false}
-  const key=c=>c.term+'|'+c.name;
+  const key=c=>c.term+'|'+(c.code||c.name);
   const have=new Set(state.courses.map(key));
   const fresh=rows.filter(r=>!have.has(key(r)));
   state.courses.push(...fresh);
