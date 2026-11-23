@@ -7,12 +7,12 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Space+Grotesk:wght@500;700&display=swap">
 <style>
-/* Layout: one narrow column like a phone app; summary ring first, category cards, then the editable course list. */
+/* Layout: one narrow column like a phone app; program picker, summary ring, category cards, missing courses, then the editable course list. */
 :root{
   --bg:#f3f5f4; --surface:#ffffff; --line:#dfe5e2; --fg:#1c2421; --muted:#61706a;
   --accent:#0f8f86; --accent-soft:#d6efec;
-  --c1:#2f6fd6; --c2:#7a52cc; --c3:#d0567a; --c4:#d9932b; --c5:#4c9a5a;
-  --warn:#b7791f; --ok:#2e8a4e;
+  --c-dept:#7a52cc; --c-own:#d0567a; --c-gen:#d9932b;
+  --warn:#b7791f;
   --f-body:"Noto Sans TC",system-ui,-apple-system,"PingFang TC","Microsoft JhengHei",sans-serif;
   --f-num:"Space Grotesk","Noto Sans TC",system-ui,sans-serif;
   --r:14px;
@@ -20,13 +20,13 @@
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --bg:#111715; --surface:#1a2220; --line:#2b3633; --fg:#e7eeeb; --muted:#93a39d;
   --accent:#3cc0b4; --accent-soft:#183a37;
-  --c1:#6c9cf0; --c2:#a688e6; --c3:#ea7d9e; --c4:#ebb057; --c5:#78c286;
-  --warn:#e0a84a; --ok:#5cc282; color-scheme:dark}}
+  --c-dept:#a688e6; --c-own:#ea7d9e; --c-gen:#ebb057;
+  --warn:#e0a84a; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#111715; --surface:#1a2220; --line:#2b3633; --fg:#e7eeeb; --muted:#93a39d;
   --accent:#3cc0b4; --accent-soft:#183a37;
-  --c1:#6c9cf0; --c2:#a688e6; --c3:#ea7d9e; --c4:#ebb057; --c5:#78c286;
-  --warn:#e0a84a; --ok:#5cc282; color-scheme:dark}
+  --c-dept:#a688e6; --c-own:#ea7d9e; --c-gen:#ebb057;
+  --warn:#e0a84a; color-scheme:dark}
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.6}
 .wrap{max-width:760px;margin:0 auto;padding-block:20px 60px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:18px}
@@ -35,6 +35,9 @@ h2{font-size:1.1rem;font-weight:700;margin:0;text-wrap:balance}
 .sub{color:var(--muted);margin:2px 0 0;font-size:.9rem}
 .panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px;display:flex;flex-direction:column;gap:12px;min-width:0}
 .num{font-family:var(--f-num);font-variant-numeric:tabular-nums}
+.pick{display:grid;grid-template-columns:1fr 170px;gap:10px}
+@media (max-width:460px){.pick{grid-template-columns:1fr}}
+.pick label{display:flex;flex-direction:column;gap:4px;font-size:.82rem;color:var(--muted)}
 .hero{display:grid;grid-template-columns:200px 1fr;gap:18px;align-items:center}
 @media (max-width:520px){.hero{grid-template-columns:1fr;justify-items:center;text-align:center}}
 .ring{position:relative;width:200px;height:200px}
@@ -42,25 +45,27 @@ h2{font-size:1.1rem;font-weight:700;margin:0;text-wrap:balance}
 .ring .mid{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
 .ring .big{font-size:3.2rem;font-weight:700;line-height:1}
 .legend{display:flex;flex-direction:column;gap:6px}
-.legend .row{display:flex;align-items:center;gap:8px}
+.legend .row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+@media (max-width:520px){.legend .row{justify-content:center}}
 .dot{width:10px;height:10px;border-radius:50%;flex:none}
-.tag{display:inline-block;font-size:.75rem;padding:1px 8px;border-radius:99px;background:var(--accent-soft);color:var(--accent);font-weight:500}
+.tag{display:inline-block;font-size:.75rem;padding:1px 8px;border-radius:99px;background:var(--accent-soft);color:var(--accent);font-weight:500;white-space:nowrap}
 .tag.warn{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)}
-.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:6px}
 .card .need{font-size:.9rem;color:var(--muted)}
 .card .need b{font-size:1.9rem;color:var(--fg);margin:0 4px}
 .bar{height:8px;border-radius:99px;background:var(--line);overflow:hidden;display:flex}
 .bar i{display:block;height:100%}
 .small{font-size:.82rem;color:var(--muted)}
-textarea,input,select{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+textarea,input,select{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px 10px;max-width:100%}
 textarea{width:100%;min-height:130px;resize:vertical}
-input[type=number]{width:72px}
+input[type=number]{width:80px}
 button{font:inherit;font-weight:500;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:10px;padding:8px 14px;cursor:pointer}
 button.pri{background:var(--accent);border-color:var(--accent);color:#fff}
-button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+a{color:var(--accent)}
 .btns{display:flex;flex-wrap:wrap;gap:8px}
-ol.steps{margin:0;padding-left:1.3em;color:var(--muted);font-size:.9rem}
+ol.steps,ul.notes{margin:0;padding-left:1.3em;color:var(--muted);font-size:.88rem}
 .tablebox{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
 table{border-collapse:collapse;width:100%;font-size:.88rem}
 th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
@@ -68,18 +73,30 @@ th{color:var(--muted);font-weight:500;background:var(--bg)}
 td.name{white-space:normal;min-width:150px}
 td input,td select{padding:4px 6px;border-radius:8px}
 td input.n{width:56px}
-.reqgrid{display:grid;grid-template-columns:1fr auto auto;gap:8px 10px;align-items:center}
-.notice{font-size:.85rem;color:var(--muted);border-left:3px solid var(--warn);padding:4px 10px}
+.reqgrid{display:grid;grid-template-columns:1fr auto;gap:8px 10px;align-items:center;max-width:340px}
+.notice{font-size:.85rem;color:var(--muted);border-left:3px solid var(--warn);padding:4px 10px;margin:0}
 .msg{font-size:.9rem;color:var(--accent);min-height:1.4em}
-details summary{cursor:pointer;font-weight:700}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-size:.85rem;padding:3px 10px;border-radius:99px;border:1px solid var(--line);background:var(--bg)}
+.chip.doing{border-color:var(--warn);color:var(--warn)}
+details summary{cursor:pointer}
 @media (prefers-reduced-motion:no-preference){.bar i{transition:width .4s}}
 </style>
 
 <div class="wrap">
   <header>
     <h1>長庚學分計算</h1>
-    <p class="sub">貼上 iCGU 歷年成績，算出離畢業還差幾學分。資料只存在你自己的瀏覽器。</p>
+    <p class="sub">選好科系和入學年度，貼上 iCGU 歷年成績，算出離畢業還差幾學分。資料只存在你自己的瀏覽器。</p>
   </header>
+
+  <section class="panel" aria-labelledby="progTitle">
+    <h2 id="progTitle">我的科系</h2>
+    <div class="pick">
+      <label for="selDept">科系<select id="selDept"></select></label>
+      <label for="selYear">入學年度<select id="selYear"></select></label>
+    </div>
+    <div id="progInfo" class="small"></div>
+  </section>
 
   <section class="panel" aria-labelledby="sumTitle">
     <div class="hero">
@@ -98,14 +115,19 @@ details summary{cursor:pointer;font-weight:700}
 
   <section class="cards" id="cards" aria-label="各類別學分"></section>
 
+  <section class="panel" id="missingPanel" aria-labelledby="missTitle">
+    <h2 id="missTitle">還沒修的系訂必修</h2>
+    <div id="missingBox"></div>
+  </section>
+
   <section class="panel" aria-labelledby="pasteTitle">
     <h2 id="pasteTitle">匯入我的成績</h2>
     <ol class="steps">
       <li>登入 iCGU，打開「成績查詢」的歷年成績。</li>
-      <li>在表格上全選（Ctrl+A 或長按全選）並複製。</li>
-      <li>貼到下面，按「匯入」。下方表格可以逐筆修改類別。</li>
+      <li>從表頭「學年」開始選到最後一列，複製。</li>
+      <li>貼到下面，按「匯入」。入學年度會自動帶入。</li>
     </ol>
-    <textarea id="paste" placeholder="把成績表格貼在這裡"></textarea>
+    <textarea id="paste" placeholder="學年	學期	科目代號	課程名稱	成績	實得學分	備註	登錄日"></textarea>
     <div class="btns">
       <button class="pri" id="btnImport">匯入</button>
       <button id="btnAdd">手動新增一門課</button>
@@ -122,49 +144,90 @@ details summary{cursor:pointer;font-weight:700}
         <tbody id="tbody"></tbody>
       </table>
     </div>
-    <p class="small">成績留空代表修習中；C- 以上、60 分以上、通過、合格、抵免算已取得。判斷錯了可以在「狀態」直接改。</p>
+    <p class="small">類別依科目表自動判斷，手動改過的會保留。成績留空代表修習中；60 分以上、Pass、通過、抵免算已取得；重修的課只算一次。</p>
   </section>
 
-  <section class="panel" aria-labelledby="reqTitle">
-    <details id="reqDetails">
-      <summary id="reqTitle">畢業學分規定（人工智慧學系）</summary>
-      <div style="display:flex;flex-direction:column;gap:10px;margin-top:12px">
-        <p class="notice">預設值還沒跟學校核對過：總學分 128、系訂必修 60 取自系網公開資料，其他類別請依 iCGU「系所必選修科目」中你入學年度的表填上。</p>
-        <div class="reqgrid" id="reqGrid"></div>
-        <label class="small">畢業總學分 <input type="number" id="reqTotal" min="0" class="num"></label>
-        <label class="small">系訂必修科目清單（一行一科，用來找出還沒修的必修）<textarea id="reqCourses" style="min-height:90px" placeholder="例：機器學習"></textarea></label>
-      </div>
-    </details>
-    <div id="missingBox" class="small"></div>
+  <section class="panel" id="customPanel" aria-labelledby="customTitle">
+    <h2 id="customTitle">自訂畢業規定</h2>
+    <p class="notice" id="customNote"></p>
+    <div class="reqgrid">
+      <label for="cu_total">畢業總學分</label><input type="number" min="0" class="num" id="cu_total">
+      <label for="cu_required">系訂必修</label><input type="number" min="0" class="num" id="cu_required">
+      <label for="cu_elective">選修</label><input type="number" min="0" class="num" id="cu_elective">
+      <label for="cu_gen">通識（含英文）</label><input type="number" min="0" class="num" id="cu_gen">
+      <label for="cu_prefix">本系科目代號開頭</label><input id="cu_prefix" placeholder="例：CS" style="width:140px">
+    </div>
+    <label class="small" for="cu_courses">系訂必修科目（一行一科）</label>
+    <textarea id="cu_courses" style="min-height:90px" placeholder="例：微積分(1)(2)"></textarea>
   </section>
 </div>
 
+<script src="programs.js"></script>
 <script>
+const PROGRAMS=window.CGU_PROGRAMS||[], SOURCES=window.CGU_SOURCES||{};
 const CATS=[
-  {id:'common',name:'校訂共同必修',color:'--c1'},
-  {id:'gen',name:'通識',color:'--c4'},
-  {id:'dept',name:'系訂必修',color:'--c2'},
-  {id:'elective',name:'選修',color:'--c3'},
-  {id:'none',name:'不計入',color:'--muted'}
+  {id:'dept',name:'系訂必修'},{id:'own',name:'本系選修'},{id:'other',name:'外系選修'},
+  {id:'gen',name:'通識（含英文）'},{id:'none',name:'不計入'}
 ];
-const COMMON_KW=['國文','英文','英語','體育','服務學習','軍訓','全人','大學入門','中文'];
-const GEN_KW=['通識','博雅','核心'];
-const DEFAULT_REQ={total:128,cats:{common:0,gen:0,dept:60,elective:0},courses:''};
-const SAMPLE=[
-  ['112-1','計算機概論(1)',3,'92','dept'],['112-1','微積分(1)',3,'78','dept'],['112-1','大一英文',2,'85','common'],
-  ['112-2','程式設計',3,'88','dept'],['113-1','資料結構',3,'81','dept'],['113-1','通識：科技與社會',2,'90','gen'],
-  ['113-2','機器學習',3,'86','dept'],['114-2','自然語言處理與應用',3,'','elective'],['115-1','專題研究(3)',1,'','dept']
-].map(r=>({term:r[0],name:r[1],cr:r[2],score:r[3],cat:r[4]}));
+const YEARS=[110,111,112,113,114,115];
 
-let state={courses:SAMPLE,req:structuredClone(DEFAULT_REQ),sample:true};
-try{const s=JSON.parse(localStorage.getItem('cguCredit')||'null');if(s&&s.courses){state=s}}catch(e){}
-function save(){try{localStorage.setItem('cguCredit',JSON.stringify(state))}catch(e){}}
+/* ---------- state ---------- */
+const SAMPLE=[
+  ['112-1','AI1014','離散數學',3,'86'],['112-1','AI1022','微積分(1)',3,'78'],['112-1','GE1001','基礎英文(A)',2,'96'],
+  ['112-2','AI1026','微積分(2)',3,'86'],['112-2','GS0304','政治學與現代公民',3,'70'],['113-1','AI2009','機器學習',3,'81'],
+  ['113-1','AI2110','Web應用程式開發',3,'86'],['113-2','EE3007','醫學電子導論',3,'71'],['115-1','AI4001','專題研究(3)',1,'']
+].map(r=>({term:r[0],code:r[1],name:r[2],cr:r[3],score:r[4]}));
+let state={courses:SAMPLE,sample:true,dept:'人工智慧學系',year:112,yearAuto:true,
+  custom:{total:128,required:0,elective:0,gen:0,prefix:'',courses:''}};
+try{const s=JSON.parse(localStorage.getItem('cguCredit2')||'null');if(s&&s.courses)state=Object.assign(state,s)}catch(e){}
+function save(){try{localStorage.setItem('cguCredit2',JSON.stringify(state))}catch(e){}}
 
 const $=id=>document.getElementById(id);
 const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
-const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmt=n=>Number.isInteger(n)?String(n):n.toFixed(1);
 
-/* 等第制：大學部 C- 以上及格（教育部等第對照） */
+/* ---------- course names ---------- */
+function norm(s){
+  return String(s||'').replace(/[！-～]/g,c=>String.fromCharCode(c.charCodeAt(0)-0xfee0)).replace(/\s/g,'').toLowerCase();
+}
+/* "微積分(1)(2)" -> ["微積分(1)","微積分(2)"] */
+function expand(name){
+  const n=norm(name),m=n.match(/^(.*?)((?:\(\d\)){2,})$/);
+  return m?m[2].match(/\(\d\)/g).map(p=>m[1]+p):[n];
+}
+function inList(name,list){
+  const n=norm(name),base=n.replace(/\([^)]*\)$/,'');
+  for(const item of list)for(const e of expand(item)){
+    if(e===n)return true;
+    if(!e.includes('(')&&base===e)return true;
+  }
+  return false;
+}
+
+/* ---------- program ---------- */
+function currentProgram(){
+  const p=PROGRAMS.find(p=>p.dept===state.dept&&p.year===+state.year&&p.status==='ok');
+  if(p)return p;
+  const c=state.custom;
+  return {custom:true,dept:state.dept,year:+state.year,
+    prefixes:c.prefix.split(/[,，\s]+/).filter(Boolean).map(s=>s.toUpperCase()),
+    rules:{total:+c.total||0,required:+c.required||0,elective:+c.elective||0,electiveOwnMin:0,electiveOtherMax:null,gen:+c.gen||0},
+    required:c.courses.split(/\n/).map(s=>s.trim()).filter(Boolean),electives:[],pickOne:[],notes:[],
+    source:(SOURCES[state.dept]||{})[state.year]};
+}
+function classify(c,p){
+  const code=(c.code||'').toUpperCase();
+  if(/^SP/.test(code)||/^體育/.test(c.name))return 'none';
+  if(inList(c.name,p.required))return 'dept';
+  if(/^G/.test(code))return 'gen';
+  if(inList(c.name,p.electives)||p.prefixes.some(x=>code.startsWith(x)))return 'own';
+  if(!code&&/通識|英文|英語/.test(c.name))return 'gen';
+  return 'other';
+}
+const catOf=(c,p)=>c.manualCat||classify(c,p);
+
+/* ---------- pass / fail ---------- */
 const LETTER_PASS=/^(A\+|A|A-|B\+|B|B-|C\+|C|C-)$/i, LETTER_FAIL=/^(D[+-]?|E|F|X)$/i;
 function autoStatus(c){
   const s=String(c.score??'').trim().replace(/\s/g,'');
@@ -174,53 +237,12 @@ function autoStatus(c){
   if(/不及格|不合格|不通過|停修|退選|^W$|^fail$/i.test(s))return 'fail';
   if(/通過|抵免|免修|及格|合格|^P$|^pass$/i.test(s))return 'pass';
   const n=parseFloat(s);
-  if(!isNaN(n)){if(n<=4.3&&s.includes(".")) return n>=1.7?'pass':'fail';return n>=60?'pass':'fail'}
+  if(!isNaN(n)){if(n<=4.3&&s.includes('.'))return n>=1.7?'pass':'fail';return n>=60?'pass':'fail'}
   return 'pass';
 }
-function status(c){return c.st&&c.st!=='auto'?c.st:autoStatus(c)}
+const status=c=>c.st&&c.st!=='auto'?c.st:autoStatus(c);
 
 /* ---------- parsing pasted text ---------- */
-const TYPE_RE=/^(必修?|選修?|通識|共同必修|校必修|系必修|核心)$/;
-const TERM_RE=/^(\d{2,3})\s*[-\/]?\s*([12]|暑)$/;
-const SCORE_TXT=/^(通過|不通過|抵免|免修|及格|不及格|合格|不合格|停修|退選|P|Pass|Fail|F|W|X|E|[A-D][+-]?)$/i;
-function guessCat(name,type,code){
-  code=(code||'').toUpperCase();
-  if(code){
-    if(/^(GE|SP|MS|GL)/.test(code))return 'common';   /* 英文、體育等校訂共同 */
-    if(/^G/.test(code))return 'gen';                  /* GA/GD/GH/GS/GT… 通識 */
-    if(/^AIM/.test(code))return 'elective';           /* AI 系選修（含合開） */
-    if(/^AI/.test(code))return /選/.test(type)?'elective':'dept';
-    if(!type)return 'elective';                       /* 外系課 */
-  }
-  if(GEN_KW.some(k=>name.includes(k))||/通識/.test(type))return 'gen';
-  if(COMMON_KW.some(k=>name.includes(k)))return 'common';
-  if(/必/.test(type))return 'dept';
-  return 'elective';
-}
-function parseRow(cells,curTerm){
-  cells=cells.map(c=>c.trim()).filter(Boolean);
-  if(cells.length<2)return null;
-  let term=curTerm,type='',name='',nums=[],scoreTxt='';
-  for(const c of cells){
-    const t=c.replace(/\s/g,'');
-    let m;
-    if((m=t.match(TERM_RE))){term=m[1]+'-'+m[2];continue}
-    if((m=t.match(/^(\d{3})學年度?第?([一二12])學期/))){term=m[1]+'-'+(m[2]==='一'||m[2]==='1'?1:2);continue}
-    if(TYPE_RE.test(t)){type=t;continue}
-    if(SCORE_TXT.test(t)){scoreTxt=t;continue}
-    if(/^\d+(\.\d+)?$/.test(t)){nums.push(parseFloat(t));continue}
-    if(/[一-鿿A-Za-z]/.test(t)&&t.length>name.length&&!/^[A-Z]{0,3}\d{3,}[A-Z]?$/.test(t))name=c;
-  }
-  if(!name)return null;
-  const ci=nums.findIndex(n=>n>0&&n<=9&&Number.isInteger(n*2));
-  if(ci<0)return null;
-  const cr=nums[ci];
-  const rest=nums.filter((_,i)=>i!==ci&&_<=100);
-  const big=rest.filter(n=>n>4.3);
-  const score=scoreTxt||(big.length?String(big[big.length-1]):rest.length?String(rest[rest.length-1]):'');
-  return {term:term||'',name,cr,score,cat:guessCat(name,type)};
-}
-/* 有表頭（如 iCGU 成績查詢：學年 學期 科目代號 課程名稱 成績 實得學分 備註）時依欄位讀取 */
 function parseByHeader(lines){
   const hi=lines.findIndex(l=>/(課程|科目)名稱/.test(l)&&/學分/.test(l));
   if(hi<0)return null;
@@ -228,156 +250,188 @@ function parseByHeader(lines){
   const H=lines[hi].split(sep).map(h=>h.trim());
   const col=re=>H.findIndex(h=>re.test(h));
   const iY=col(/^學年$/),iS=col(/^學期$/),iT=col(/學年期/),iC=col(/代號|代碼|課號/),iN=col(/(課程|科目)名稱/),
-        iG=col(/^成績$|分數|等第/),iCr=col(/學分/),iTy=col(/必選修|選別|修別|類別/),iR=col(/備註/);
+        iG=col(/^成績$|分數|等第/),iCr=col(/學分/),iR=col(/備註/);
   if(iN<0||iCr<0)return null;
   const out=[];
   for(const l of lines.slice(hi+1)){
     const c=l.split(sep).map(x=>x.trim());
     const name=c[iN];if(!name||/(課程|科目)名稱/.test(name))continue;
     let term='';
-    if(iY>=0&&iS>=0&&c[iY])term=c[iY]+'-'+c[iS];
+    if(iY>=0&&iS>=0&&/^\d+$/.test(c[iY]||''))term=c[iY]+'-'+c[iS];
     else if(iT>=0&&c[iT]){const t=c[iT].replace(/\D/g,'');term=t.slice(0,-1)+'-'+t.slice(-1)}
-    const crRaw=c[iCr]||'';const cr=parseFloat(crRaw);
+    const cr=parseFloat(c[iCr]||'');
     let score=iG>=0?c[iG]||'':'';
     const remark=iR>=0?c[iR]||'':'';
     if(!score&&/通過|抵免|免修/.test(remark))score=remark.trim();
-    const code=iC>=0?c[iC]||'':'';
-    out.push({term,code,name,cr:isNaN(cr)?0:cr,score,cat:guessCat(name,iTy>=0?c[iTy]||'':'',code)});
+    out.push({term,code:iC>=0?c[iC]||'':'',name,cr:isNaN(cr)?0:cr,score});
   }
   return out.length?out:null;
 }
-function parseText(txt){
-  const lines=txt.split(/\r?\n/).map(l=>l.trimEnd()).filter(l=>l.trim());
-  const byHead=parseByHeader(lines);if(byHead)return byHead;
+function parseLoose(lines){
   const out=[];let curTerm='';
-  const tabbed=lines.filter(l=>l.includes('\t')).length>=lines.length*0.3;
-  if(tabbed||lines.some(l=>/\S\s{2,}\S/.test(l))){
-    for(const l of lines){
-      const hm=l.match(/(\d{3})\s*學年度?.*?第?\s*([一二12])\s*學期/);
-      if(hm&&!l.includes('\t'))curTerm=hm[1]+'-'+(/[一1]/.test(hm[2])?1:2);
-      const r=parseRow(tabbed?l.split('\t'):l.split(/\s{2,}/),curTerm);
-      if(r){out.push(r);curTerm=r.term||curTerm}
+  for(const l of lines){
+    const cells=(l.includes('\t')?l.split('\t'):l.split(/\s+/)).map(x=>x.trim()).filter(Boolean);
+    let term=curTerm,name='',code='',nums=[],scoreTxt='';
+    for(const t of cells){
+      let m;
+      if((m=t.match(/^(\d{3})[-\/]([12]|暑)$/))){term=m[1]+'-'+m[2];continue}
+      if(/^[A-Z]{2,3}\d{3,4}[A-Z]?$/i.test(t)){code=t;continue}
+      if(/^(通過|抵免|免修|及格|不及格|合格|不合格|停修|P|Pass|F|W|X|[A-E][+-]?)$/i.test(t)){scoreTxt=t;continue}
+      if(/^\d+(\.\d+)?$/.test(t)){nums.push(parseFloat(t));continue}
+      if(/[一-鿿A-Za-z]/.test(t)&&t.length>name.length)name=t;
     }
-    if(out.length)return out;
+    if(!name)continue;
+    const ci=nums.findIndex(n=>n>=0&&n<=9&&Number.isInteger(n*2));
+    if(ci<0)continue;
+    const rest=nums.filter((n,i)=>i!==ci&&n<=100&&n>4.3);
+    out.push({term,code,name,cr:nums[ci],score:scoreTxt||(rest.length?String(rest[rest.length-1]):'')});
+    curTerm=term;
   }
-  /* one cell per line: find header row, then chunk */
-  const HEAD=/^(學期|學年期|科目名稱|課程名稱|科目|學分數?|成績|必選修|選別|修別|課號|課程代碼|備註|學年|開課系所)$/;
-  let hs=lines.findIndex(l=>HEAD.test(l.trim()));
-  if(hs>=0){
-    let he=hs;while(he+1<lines.length&&HEAD.test(lines[he+1].trim()))he++;
-    const n=he-hs+1;
-    for(let i=he+1;i+n<=lines.length;i+=n){
-      const r=parseRow(lines.slice(i,i+n),curTerm);
-      if(r){out.push(r);curTerm=r.term||curTerm}
-    }
-    if(out.length)return out;
-  }
-  for(const l of lines){const r=parseRow(l.split(/\s+/),curTerm);if(r){out.push(r);curTerm=r.term||curTerm}}
   return out;
 }
+function parseText(txt){
+  const lines=txt.split(/\r?\n/).map(l=>l.replace(/\s+$/,'')).filter(l=>l.trim());
+  return parseByHeader(lines)||parseLoose(lines);
+}
 
-/* ---------- compute + render ---------- */
-function compute(){
+/* ---------- compute ---------- */
+function compute(p){
   const by={};CATS.forEach(c=>by[c.id]={done:0,doing:0});
-  for(const c of state.courses){
-    const st=status(c);const cr=+c.cr||0;
-    if(st==='pass')by[c.cat].done+=cr;else if(st==='doing')by[c.cat].doing+=cr;
+  const passed=new Set();
+  const list=[...state.courses].sort((a,b)=>(status(a)==='pass'?0:1)-(status(b)==='pass'?0:1));
+  for(const c of list){
+    const st=status(c);if(st==='fail')continue;
+    const k=norm(c.name)+'|'+(c.code||'');
+    if(passed.has(k))continue;
+    if(st==='pass')passed.add(k);
+    by[catOf(c,p)][st==='pass'?'done':'doing']+=+c.cr||0;
   }
-  return by;
+  const r=p.rules,cap=r.electiveOtherMax==null?Infinity:r.electiveOtherMax;
+  const otherDone=Math.min(by.other.done,cap);
+  const elective={done:by.own.done+otherDone,doing:by.own.doing+Math.min(by.other.doing,Math.max(0,cap-by.other.done))};
+  const counted={dept:by.dept,elective,gen:by.gen};
+  return {by,counted,done:by.dept.done+elective.done+by.gen.done,doing:by.dept.doing+elective.doing+by.gen.doing};
+}
+
+/* ---------- render ---------- */
+function renderPicker(){
+  const depts=[...new Set([...PROGRAMS.map(p=>p.dept),...Object.keys(SOURCES)])];
+  $('selDept').innerHTML=depts.map(d=>{
+    const has=PROGRAMS.some(p=>p.dept===d&&p.status==='ok');
+    return `<option value="${esc(d)}"${d===state.dept?' selected':''}>${esc(d)}${has?'':'（尚未整理）'}</option>`}).join('');
+  $('selYear').innerHTML=YEARS.map(y=>{
+    const ok=PROGRAMS.some(p=>p.dept===state.dept&&p.year===y&&p.status==='ok');
+    return `<option value="${y}"${y===+state.year?' selected':''}>${y} 學年入學${ok?'':'（未整理）'}</option>`}).join('');
+}
+function card(name,color,need,d,g,extra){
+  const max=Math.max(need,d+g,1);
+  const head=need?`還差<b class="num">${fmt(Math.max(0,need-d))}</b>學分`:`<span class="tag warn">未設定門檻</span>`;
+  return `<div class="card"><strong>${name}</strong><div class="need">${head}</div>
+    <div class="bar"><i style="width:${d/max*100}%;background:var(${color})"></i><i style="width:${g/max*100}%;background:var(${color});opacity:.38"></i></div>
+    <div class="small num">${fmt(d)}${need?' / '+fmt(need):''} 學分${g?' · 修習中 '+fmt(g):''}</div>${extra||''}</div>`;
 }
 function render(){
-  const by=compute(),req=state.req;
-  const counted=CATS.filter(c=>c.id!=='none');
-  const done=counted.reduce((s,c)=>s+by[c.id].done,0);
-  const doing=counted.reduce((s,c)=>s+by[c.id].doing,0);
-  const total=+req.total||0;
+  renderPicker();
+  const p=currentProgram(),r=p.rules,{by,counted,done,doing}=compute(p);
+  if(p.custom){
+    $('progInfo').innerHTML='這個科系、年度的科目表還沒整理進來，請在最下方「自訂畢業規定」填入門檻。'+
+      (p.source?` 可參考<a href="${esc(p.source)}" target="_blank" rel="noopener">學校公告的科目表</a>。`:' 學校網站上找不到這個年度的公告，可以向系辦索取。');
+  }else{
+    $('progInfo').innerHTML=`<div>畢業 <b class="num">${r.total}</b> 學分：系訂必修 ${r.required}、選修 ${r.elective}（本系至少 ${r.electiveOwnMin}${r.electiveOtherMax!=null?`，外系最多採計 ${r.electiveOtherMax}`:''}）、通識 ${r.gen}。
+      <a href="${esc(p.source)}" target="_blank" rel="noopener">官方科目表</a></div>
+      <details style="margin-top:6px"><summary>其他規定</summary><ul class="notes">${p.notes.map(n=>`<li>${esc(n)}</li>`).join('')}</ul></details>`;
+  }
+  $('customPanel').hidden=!p.custom;
+  $('customNote').textContent=`${state.dept} ${state.year} 學年入學的科目表還沒整理，先手動填。整理好後會自動換成學校的規定。`;
+  // summary ring
+  const total=r.total;
   $('earned').textContent=fmt(done);$('total').textContent=fmt(total);
   $('remain').textContent=fmt(Math.max(0,total-done));
   $('sampleTag').hidden=!state.sample;
   $('ringNote').textContent=doing?`淡色是修習中的 ${fmt(doing)} 學分；本學期修完後為 ${fmt(done+doing)} / ${fmt(total)}`:'';
-  // ring
-  const R=50,C=2*Math.PI*R;let off=0;let svg=`<circle cx="60" cy="60" r="${R}" fill="none" stroke="${css('--line')}" stroke-width="14"/>`;
-  const denom=Math.max(total,done+doing,1);
-  for(const c of counted){
-    for(const [v,op] of [[by[c.id].done,1],[by[c.id].doing,.38]]){
-      if(!v)continue;const len=v/denom*C;
-      svg+=`<circle cx="60" cy="60" r="${R}" fill="none" stroke="${css(c.color)}" stroke-opacity="${op}" stroke-width="14" stroke-dasharray="${len} ${C-len}" stroke-dashoffset="${-off}"/>`;
-      off+=len;
-    }
+  const segs=[['系訂必修','--c-dept',counted.dept],['選修','--c-own',counted.elective],['通識（含英文）','--c-gen',counted.gen]];
+  const R=50,C=2*Math.PI*R,denom=Math.max(total,done+doing,1);let off=0;
+  let svg=`<circle cx="60" cy="60" r="${R}" fill="none" stroke="${css('--line')}" stroke-width="14"/>`;
+  for(const [,col,v] of segs)for(const [x,op] of [[v.done,1],[v.doing,.38]]){
+    if(!x)continue;const len=x/denom*C;
+    svg+=`<circle cx="60" cy="60" r="${R}" fill="none" stroke="${css(col)}" stroke-opacity="${op}" stroke-width="14" stroke-dasharray="${len} ${C-len}" stroke-dashoffset="${-off}"/>`;
+    off+=len;
   }
   $('ringSvg').innerHTML=svg;
-  $('legend').innerHTML=counted.map(c=>`<div class="row"><span class="dot" style="background:var(${c.color})"></span>${c.name}<span class="small num">已取得 ${fmt(by[c.id].done)}</span></div>`).join('');
+  $('legend').innerHTML=segs.map(([n,c,v])=>`<div class="row"><span class="dot" style="background:var(${c})"></span>${n}<span class="small num">已取得 ${fmt(v.done)}</span></div>`).join('');
   // cards
-  $('cards').innerHTML=counted.map(c=>{
-    const need=+req.cats[c.id]||0,d=by[c.id].done,g=by[c.id].doing;
-    const max=Math.max(need,d+g,1);
-    const head=need?`還差<b class="num">${fmt(Math.max(0,need-d))}</b>學分`:`<span class="tag warn">未設定門檻</span>`;
-    return `<div class="card"><strong>${c.name}</strong><div class="need">${head}</div>
-      <div class="bar"><i style="width:${d/max*100}%;background:var(${c.color})"></i><i style="width:${g/max*100}%;background:var(${c.color});opacity:.38"></i></div>
-      <div class="small num">${fmt(d)}${need?' / '+fmt(need):''} 學分${g?' · 修習中 '+fmt(g):''}</div></div>`}).join('');
-  // table
+  const ownNeed=r.electiveOwnMin||0;
+  const ownLine=`<div class="small num">本系選修 ${fmt(by.own.done)}${ownNeed?` / 至少 ${ownNeed}`:''}${ownNeed&&by.own.done<ownNeed?` <span class="tag warn">差 ${fmt(ownNeed-by.own.done)}</span>`:''}</div>
+    <div class="small num">外系選修 ${fmt(by.other.done)}${r.electiveOtherMax!=null?`（最多採計 ${r.electiveOtherMax}）`:''}</div>`;
+  $('cards').innerHTML=card('系訂必修','--c-dept',r.required,counted.dept.done,counted.dept.doing)+
+    card('選修','--c-own',r.elective,counted.elective.done,counted.elective.doing,ownLine)+
+    card('通識（含英文）','--c-gen',r.gen,counted.gen.done,counted.gen.doing);
+  // missing required courses
+  const live=state.courses.filter(c=>status(c)!=='fail');
+  const has=name=>{const hit=live.filter(c=>inList(c.name,[name]));return hit.some(c=>status(c)==='pass')?'pass':hit.length?'doing':null};
+  const items=[];
+  for(const req of p.required)for(const e of expand(req)){const st=has(e);if(st!=='pass')items.push({label:e,st})}
+  for(const g of p.pickOne||[]){const sts=g.any.map(has);if(!sts.includes('pass'))items.push({label:g.label,st:sts.includes('doing')?'doing':null})}
+  $('missingPanel').hidden=!p.required.length&&!(p.pickOne||[]).length;
+  $('missingBox').innerHTML=items.length
+    ?`<div class="chips">${items.map(i=>`<span class="chip${i.st==='doing'?' doing':''}">${esc(i.label)}${i.st==='doing'?' · 修習中':''}</span>`).join('')}</div>`
+    :'<span class="tag">系訂必修都修過了</span>';
+  // course table
   $('count').textContent=`共 ${state.courses.length} 門`;
   $('tbody').innerHTML=state.courses.map((c,i)=>{
-    const st=status(c);
     const auto={pass:'已取得',doing:'修習中',fail:'未通過'}[autoStatus(c)];
-    const cur=c.st||'auto';
-    const stTxt=`<select data-k="st" aria-label="狀態">${[['auto','自動（'+auto+'）'],['pass','已取得'],['doing','修習中'],['fail','未通過']].map(([v,t])=>`<option value="${v}"${v===cur?' selected':''}>${t}</option>`).join('')}</select>`;
+    const cur=c.st||'auto',cat=catOf(c,p);
+    const stSel=`<select data-k="st" aria-label="狀態">${[['auto','自動（'+auto+'）'],['pass','已取得'],['doing','修習中'],['fail','未通過']].map(([v,t])=>`<option value="${v}"${v===cur?' selected':''}>${t}</option>`).join('')}</select>`;
+    const catSel=`<select data-k="cat" aria-label="類別">${CATS.map(x=>`<option value="${x.id}"${x.id===cat?' selected':''}>${x.name}</option>`).join('')}</select>${c.manualCat?'<div class="small">手動</div>':''}`;
     return `<tr data-i="${i}">
       <td><input data-k="term" value="${esc(c.term)}" style="width:66px" aria-label="學期"></td>
       <td class="name"><input data-k="name" value="${esc(c.name)}" style="width:100%" aria-label="科目">${c.code?`<div class="small num">${esc(c.code)}</div>`:''}</td>
       <td><input class="n num" type="number" step="0.5" min="0" data-k="cr" value="${esc(c.cr)}" aria-label="學分"></td>
       <td><input class="n num" data-k="score" value="${esc(c.score)}" aria-label="成績"></td>
-      <td><select data-k="cat" aria-label="類別">${CATS.map(x=>`<option value="${x.id}"${x.id===c.cat?' selected':''}>${x.name}</option>`).join('')}</select></td>
-      <td>${stTxt}</td>
-      <td><button data-del aria-label="刪除">刪除</button></td></tr>`}).join('');
-  // missing required courses
-  const reqList=(req.courses||'').split(/\n/).map(s=>s.trim()).filter(Boolean);
-  if(reqList.length){
-    const norm=s=>s.replace(/[\s()（）]/g,'');
-    const passed=state.courses.filter(c=>status(c)!=='fail').map(c=>norm(c.name));
-    const miss=reqList.filter(r=>!passed.some(p=>p.includes(norm(r))));
-    $('missingBox').innerHTML=miss.length?`<strong>還沒修的系訂必修：</strong>${miss.map(esc).join('、')}`:'<strong>系訂必修清單都修過或修習中了。</strong>';
-  }else $('missingBox').textContent='';
-}
-const fmt=n=>Number.isInteger(n)?String(n):n.toFixed(1);
-
-function renderReq(){
-  $('reqGrid').innerHTML=CATS.filter(c=>c.id!=='none').map(c=>`<span>${c.name}</span><input type="number" min="0" class="num" id="req_${c.id}" data-cat="${c.id}" value="${state.req.cats[c.id]||''}" placeholder="0"><span class="small">學分</span>`).join('');
-  $('reqTotal').value=state.req.total;
-  $('reqCourses').value=state.req.courses||'';
+      <td>${catSel}</td><td>${stSel}</td>
+      <td><button data-del aria-label="刪除 ${esc(c.name)}">刪除</button></td></tr>`}).join('');
+  // custom rules form
+  const cu=state.custom;
+  for(const k of ['total','required','elective','gen'])if(document.activeElement!==$('cu_'+k))$('cu_'+k).value=cu[k]||'';
+  if(document.activeElement!==$('cu_prefix'))$('cu_prefix').value=cu.prefix;
+  if(document.activeElement!==$('cu_courses'))$('cu_courses').value=cu.courses;
 }
 
 /* ---------- events ---------- */
+$('selDept').onchange=e=>{state.dept=e.target.value;save();render()};
+$('selYear').onchange=e=>{state.year=+e.target.value;state.yearAuto=false;save();render()};
 $('btnImport').onclick=()=>{
   const rows=parseText($('paste').value);
-  if(!rows.length){$('msg').textContent='沒有讀到課程。請確認貼上的內容包含科目名稱和學分數；如果還是不行，可以用「手動新增」。';return}
+  if(!rows.length){$('msg').textContent='沒有讀到課程。請從表頭「學年」那一列開始複製；還是不行的話可以用「手動新增」。';return}
   if(state.sample){state.courses=[];state.sample=false}
   const key=c=>c.term+'|'+(c.code||c.name);
   const have=new Set(state.courses.map(key));
   const fresh=rows.filter(r=>!have.has(key(r)));
   state.courses.push(...fresh);
-  state.courses.sort((a,b)=>a.term.localeCompare(b.term));
-  $('msg').textContent=`匯入 ${fresh.length} 門課${rows.length-fresh.length?`（略過重複 ${rows.length-fresh.length} 門）`:''}。請檢查下方類別是否正確。`;
+  state.courses.sort((a,b)=>b.term.localeCompare(a.term));
+  let yearMsg='';
+  const years=state.courses.map(c=>parseInt(c.term)).filter(y=>y>=100);
+  if(years.length&&state.yearAuto){const y=Math.min(...years);if(YEARS.includes(y)){state.year=y;yearMsg=`，入學年度設為 ${y}`}}
+  $('msg').textContent=`匯入 ${fresh.length} 門課${rows.length-fresh.length?`（略過重複 ${rows.length-fresh.length} 門）`:''}${yearMsg}。`;
   $('paste').value='';save();render();
 };
-$('btnAdd').onclick=()=>{if(state.sample){state.courses=[];state.sample=false}state.courses.push({term:'',name:'新課程',cr:3,score:'',cat:'elective'});save();render();};
+$('btnAdd').onclick=()=>{if(state.sample){state.courses=[];state.sample=false}state.courses.unshift({term:'',code:'',name:'新課程',cr:3,score:''});save();render()};
 let clearArmed=false;
 $('btnClear').onclick=e=>{
   if(!clearArmed){clearArmed=true;e.target.textContent='再按一次確認清空';setTimeout(()=>{clearArmed=false;e.target.textContent='清空全部課程'},3000);return}
-  state.courses=[];state.sample=false;clearArmed=false;e.target.textContent='清空全部課程';save();render();
+  state.courses=[];state.sample=false;state.yearAuto=true;clearArmed=false;e.target.textContent='清空全部課程';save();render();
 };
 $('tbody').addEventListener('change',e=>{
-  const tr=e.target.closest('tr');if(!tr)return;const c=state.courses[+tr.dataset.i];const k=e.target.dataset.k;
-  if(!k)return;c[k]=k==='cr'?parseFloat(e.target.value)||0:e.target.value;state.sample=false;save();render();
+  const tr=e.target.closest('tr');if(!tr)return;const c=state.courses[+tr.dataset.i];const k=e.target.dataset.k;if(!k)return;
+  if(k==='cat'){const v=e.target.value;c.manualCat=v===classify(c,currentProgram())?undefined:v}
+  else c[k]=k==='cr'?parseFloat(e.target.value)||0:e.target.value;
+  state.sample=false;save();render();
 });
-$('tbody').addEventListener('click',e=>{
-  if(!e.target.hasAttribute('data-del'))return;state.courses.splice(+e.target.closest('tr').dataset.i,1);save();render();
-});
-$('reqGrid').addEventListener('input',e=>{const k=e.target.dataset.cat;if(k){state.req.cats[k]=parseFloat(e.target.value)||0;save();render()}});
-$('reqTotal').addEventListener('input',e=>{state.req.total=parseFloat(e.target.value)||0;save();render()});
-$('reqCourses').addEventListener('input',e=>{state.req.courses=e.target.value;save();render()});
+$('tbody').addEventListener('click',e=>{if(!e.target.hasAttribute('data-del'))return;state.courses.splice(+e.target.closest('tr').dataset.i,1);save();render()});
+for(const k of ['total','required','elective','gen'])$('cu_'+k).addEventListener('input',e=>{state.custom[k]=parseFloat(e.target.value)||0;save();render()});
+$('cu_prefix').addEventListener('input',e=>{state.custom.prefix=e.target.value;save();render()});
+$('cu_courses').addEventListener('input',e=>{state.custom.courses=e.target.value;save();render()});
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change',render);
 new MutationObserver(render).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
-
-renderReq();render();
+render();
 </script>
